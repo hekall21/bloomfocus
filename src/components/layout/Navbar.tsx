@@ -46,18 +46,18 @@ export function Navbar({ onOpenNotebook, currentStreak = 0 }: NavbarProps) {
             </div>
           )}
 
-          {/* Reflection Notebook Button */}
+          {/* Study Notebook Button */}
           {onOpenNotebook && (
             <button
               onClick={() => {
                 soundEngine.playChime("click");
                 onOpenNotebook();
               }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-xs font-bold text-pink-700 transition"
-              title="Buka Catatan Refleksi Belajar"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-xs font-bold text-pink-700 transition shadow-xs"
+              title="Buka Buku Catatan Belajar & Rangkuman Kuliah"
             >
               <BookMarked className="w-4 h-4" />
-              <span className="hidden md:inline">Buku Refleksi</span>
+              <span className="hidden sm:inline">Buku Catatan 📖</span>
             </button>
           )}
 

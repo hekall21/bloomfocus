@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { soundEngine } from "@/lib/soundEngine";
-import { Sparkles, Heart, BookOpen, Send } from "lucide-react";
+import { Sparkles, Coffee, BookOpen, CheckCircle2, Play } from "lucide-react";
 
 interface ReflectionModalProps {
   isOpen: boolean;
@@ -12,14 +12,8 @@ interface ReflectionModalProps {
   durationMinutes: number;
   onSave: (data: { reflectionNote: string; mood: string }) => Promise<void>;
   onClose: () => void;
+  onOpenNotebook?: () => void;
 }
-
-const MOODS = [
-  { id: "bloom", label: "Paham Banget 🌸", icon: "🌸" },
-  { id: "light", label: "Ada Pencerahan 💡", icon: "💡" },
-  { id: "steady", label: "Lumayan Oke 🍵", icon: "🍵" },
-  { id: "tired", label: "Capek tapi Selesai 😴", icon: "😴" },
-];
 
 export function ReflectionModal({
   isOpen,
@@ -27,9 +21,8 @@ export function ReflectionModal({
   durationMinutes,
   onSave,
   onClose,
+  onOpenNotebook,
 }: ReflectionModalProps) {
-  const [reflection, setReflection] = useState("");
-  const [selectedMood, setSelectedMood] = useState("bloom");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -38,8 +31,8 @@ export function ReflectionModal({
       soundEngine.playChime("finish");
       try {
         confetti({
-          particleCount: 80,
-          spread: 70,
+          particleCount: 90,
+          spread: 75,
           origin: { y: 0.6 },
           colors: ["#FDA4AF", "#F472B6", "#E9D5FF", "#DCFCE7", "#FEF08A"],
         });
@@ -49,19 +42,32 @@ export function ReflectionModal({
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFinishAndBreak = async () => {
     soundEngine.playChime("click");
     setIsSubmitting(true);
     try {
       await onSave({
-        reflectionNote: reflection.trim() || "Sesi fokus berhasil diselesaikan dengan baik! ✨",
-        mood: selectedMood,
+        reflectionNote: `Selesai fokus ${durationMinutes} menit.`,
+        mood: "bloom",
       });
       onClose();
-      setReflection("");
-    } catch (err) {
-      console.error("Failed to save reflection:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFinishAndTakeNotes = async () => {
+    soundEngine.playChime("finish");
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        reflectionNote: `Selesai fokus ${durationMinutes} menit.`,
+        mood: "bloom",
+      });
+      onClose();
+      if (onOpenNotebook) {
+        onOpenNotebook();
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -77,98 +83,64 @@ export function ReflectionModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="w-full max-w-lg bg-white/95 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-kawaii-lg border border-pink-200/80"
+          className="w-full max-w-md bg-white/95 backdrop-blur-2xl rounded-4xl p-6 sm:p-8 shadow-kawaii-lg border border-pink-200/80 text-center relative"
         >
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex p-3 rounded-2xl bg-pink-100 text-pink-500 border border-pink-200 shadow-sm animate-breathe">
-              <Sparkles className="w-8 h-8 fill-pink-300" />
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-bloom-slate-800 tracking-tight">
-              Yeeay! Sesi Belajar Tuntas 🌸
-            </h3>
-            <p className="text-xs sm:text-sm text-bloom-slate-500">
-              Kamu baru saja menyelesaikan{" "}
-              <span className="font-bold text-pink-600">{durationMinutes} menit</span> fokus untuk mata kuliah{" "}
-              <span className="font-bold text-bloom-slate-700 bg-pink-50 px-2 py-0.5 rounded-lg border border-pink-200">
-                {subject}
-              </span>
-            </p>
+          {/* Header Icon */}
+          <div className="inline-flex p-3.5 rounded-3xl bg-gradient-to-tr from-pink-400 to-rose-300 text-white shadow-kawaii mb-3">
+            <span className="text-3xl">🌸</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            {/* Question prompt */}
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-bloom-slate-700 mb-2 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-pink-500" />
-                <span>1 hal terpenting yang kamu pahami di sesi ini?</span>
-              </label>
-              <textarea
-                value={reflection}
-                onChange={(e) => setReflection(e.target.value)}
-                placeholder="Contoh: Mengerti konsep integral substitusi di teorema 3.2, jangan lupa perhatikan turunan bagian dalamnya..."
-                rows={3}
-                className="w-full p-3.5 bg-pink-50/40 border border-pink-200 rounded-2xl text-xs sm:text-sm text-bloom-slate-800 placeholder-bloom-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
-                autoFocus
-              />
-              <p className="mt-1 text-[11px] text-bloom-slate-400 italic">
-                Catatan ini otomatis disimpan ke Buku Catatan Refleksi untuk kamu baca kilat sebelum ujian! 📖
-              </p>
-            </div>
+          <h3 className="text-xl sm:text-2xl font-black text-bloom-slate-800 tracking-tight">
+            Yeeay! Sesi Belajar Tuntas ✨
+          </h3>
 
-            {/* Mood selector */}
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-bloom-slate-700 mb-2 flex items-center gap-1.5">
-                <Heart className="w-4 h-4 text-pink-500" />
-                <span>Bagaimana perasaanmu setelah sesi ini?</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {MOODS.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      soundEngine.playChime("click");
-                      setSelectedMood(m.id);
-                    }}
-                    className={`p-2.5 rounded-2xl border text-xs font-semibold flex flex-col items-center gap-1 transition ${
-                      selectedMood === m.id
-                        ? "bg-pink-100 border-pink-400 text-pink-700 shadow-sm scale-102"
-                        : "bg-white border-pink-100 text-bloom-slate-600 hover:bg-pink-50/60"
-                    }`}
-                  >
-                    <span className="text-xl">{m.icon}</span>
-                    <span className="text-[11px]">{m.label.split(" ")[0]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+          <p className="text-xs sm:text-sm text-bloom-slate-500 mt-1.5">
+            Kamu baru saja menyelesaikan{" "}
+            <span className="font-extrabold text-pink-600">{durationMinutes} menit</span> fokus{" "}
+            {subject ? (
+              <>
+                untuk target{" "}
+                <span className="font-bold text-bloom-slate-700 bg-pink-50 px-2 py-0.5 rounded-lg border border-pink-200">
+                  {subject}
+                </span>
+              </>
+            ) : (
+              "belajar mandiri"
+            )}
+            . 1 bunga baru mekar di kebunmu! 🌷
+          </p>
 
-            {/* Submit buttons */}
-            <div className="pt-2 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 rounded-2xl text-xs font-bold text-bloom-slate-500 hover:bg-pink-50 transition"
-              >
-                Lewati Refleksi
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white font-bold text-xs sm:text-sm shadow-kawaii hover:shadow-kawaii-lg transition transform active:scale-95 disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <span>Menyimpan...</span>
-                ) : (
-                  <>
-                    <span>Simpan & Petik Bunga</span>
-                    <Send className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+          {/* Action choices */}
+          <div className="mt-6 space-y-2.5">
+            {/* Break Button */}
+            <button
+              onClick={handleFinishAndBreak}
+              disabled={isSubmitting}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-600 hover:to-teal-500 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-kawaii transition flex items-center justify-center gap-2"
+            >
+              <Coffee className="w-4 h-4" />
+              <span>Mulai Waktu Istirahat (Rehat Sejenak 🍵)</span>
+            </button>
+
+            {/* Take Notes in Notebook Button */}
+            <button
+              onClick={handleFinishAndTakeNotes}
+              disabled={isSubmitting}
+              className="w-full py-3 px-4 bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs rounded-2xl border border-pink-200 transition flex items-center justify-center gap-2"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Tulis Catatan di Buku Catatan 📖</span>
+            </button>
+
+            {/* Continue straight */}
+            <button
+              onClick={handleFinishAndBreak}
+              disabled={isSubmitting}
+              className="w-full py-2 text-bloom-slate-400 hover:text-bloom-slate-600 font-semibold text-xs transition"
+            >
+              Tutup &amp; Siapkan Sesi Berikutnya
+            </button>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>

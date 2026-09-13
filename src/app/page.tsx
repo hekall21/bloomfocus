@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { Navbar } from "@/components/layout/Navbar";
 import { CuteFocusTimer } from "@/components/timer/CuteFocusTimer";
 import { FlowerGarden, GardenDayData } from "@/components/garden/FlowerGarden";
-import { ReflectionLogDrawer, ReflectionEntry } from "@/components/reflections/ReflectionLogDrawer";
+import { StudentNotebookDrawer } from "@/components/notes/StudentNotebookDrawer";
 import { TimetableSchedule } from "@/components/schedule/TimetableSchedule";
 import { TaskManager } from "@/components/tasks/TaskManager";
 import { AmbientPlayer } from "@/components/audio/AmbientPlayer";
@@ -34,13 +34,9 @@ export default function HomePage() {
   const [streakFreezesLeft, setStreakFreezesLeft] = useState(1);
   const [gardenDays, setGardenDays] = useState<GardenDayData[]>([]);
 
-  // Reflections state
-  const [reflections, setReflections] = useState<ReflectionEntry[]>([]);
-
-  // Load garden & sessions on mount or when user changes
+  // Load garden on mount or when user changes
   useEffect(() => {
     fetchGardenData();
-    fetchReflections();
   }, [session]);
 
   const fetchGardenData = async () => {
@@ -59,41 +55,7 @@ export default function HomePage() {
     }
   };
 
-  const fetchReflections = async () => {
-    try {
-      const res = await fetch("/api/sessions");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.sessions) {
-          const formatted: ReflectionEntry[] = data.sessions.map((s: {
-            id: string;
-            subject: string;
-            durationMinutes: number;
-            reflectionNote?: string;
-            mood?: string;
-            completedAt: string;
-          }) => ({
-            id: s.id,
-            subject: s.subject,
-            durationMinutes: s.durationMinutes,
-            reflectionNote: s.reflectionNote || "Sesi belajar selesai dengan fokus.",
-            mood: s.mood || "bloom",
-            completedAt: new Date(s.completedAt).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-          }));
-          setReflections(formatted);
-        }
-      }
-    } catch (err) {
-      console.warn("Could not fetch sessions:", err);
-    }
-  };
-
-  // Called when user finishes focus timer and reflection
+  // Called when user finishes focus timer
   const handleSessionComplete = async (data: {
     subject: string;
     durationMinutes: number;
@@ -101,15 +63,6 @@ export default function HomePage() {
     mood: string;
   }) => {
     // Optimistic UI update
-    const newEntry: ReflectionEntry = {
-      id: "local-" + Date.now(),
-      subject: data.subject,
-      durationMinutes: data.durationMinutes,
-      reflectionNote: data.reflectionNote,
-      mood: data.mood,
-      completedAt: "Baru saja",
-    };
-    setReflections((prev) => [newEntry, ...prev]);
     setTotalFocusMinutes((prev) => prev + data.durationMinutes);
 
     // Persist to database
@@ -270,6 +223,7 @@ export default function HomePage() {
                 initialSubject={targetSubject}
                 onSessionComplete={handleSessionComplete}
                 onSubjectChange={(val) => setTargetSubject(val)}
+                onOpenNotebook={() => setIsNotebookOpen(true)}
               />
 
               {/* Quick Teaser row below timer: Quick jump to Schedule & Tasks */}
@@ -374,11 +328,11 @@ export default function HomePage() {
       {/* Floating Lo-Fi and Ambient Sound Player */}
       <AmbientPlayer />
 
-      {/* Slide-over Reflection Log Drawer */}
-      <ReflectionLogDrawer
+      {/* Slide-over Study Notebook Drawer */}
+      <StudentNotebookDrawer
         isOpen={isNotebookOpen}
         onClose={() => setIsNotebookOpen(false)}
-        reflections={reflections}
+        defaultCourse={targetSubject}
       />
 
       {/* Cozy Footer */}

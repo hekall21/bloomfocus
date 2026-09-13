@@ -39,12 +39,14 @@ interface CuteFocusTimerProps {
     mood: string;
   }) => Promise<void>;
   onSubjectChange?: (newSubject: string) => void;
+  onOpenNotebook?: () => void;
 }
 
 export function CuteFocusTimer({
   initialSubject = "",
   onSessionComplete,
   onSubjectChange,
+  onOpenNotebook,
 }: CuteFocusTimerProps) {
   const [mode, setMode] = useState<TimerMode>("focus");
   const [settings, setSettings] = useState<TimerSettings>({
@@ -597,12 +599,13 @@ export function CuteFocusTimer({
         </div>
       </motion.div>
 
-      {/* Post-Session Reflection Modal */}
+      {/* Post-Session Celebration Modal */}
       <ReflectionModal
         isOpen={showReflectionModal}
         subject={subject || "Fokus Bebas"}
         durationMinutes={lastFinishedDuration}
         onSave={handleSaveReflection}
+        onOpenNotebook={onOpenNotebook}
         onClose={() => {
           setShowReflectionModal(false);
           handleSwitchMode("shortBreak");
