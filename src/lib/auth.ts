@@ -59,10 +59,10 @@ export const authOptions: NextAuthOptions = {
                 name: extractedName,
                 email,
                 image: avatar,
-                currentStreak: 1,
-                longestStreak: 1,
+                currentStreak: 0,
+                longestStreak: 0,
                 totalFocusMinutes: 0,
-                streakFreezesLeft: 2,
+                streakFreezesLeft: 1,
               },
             });
           }
@@ -101,10 +101,10 @@ export const authOptions: NextAuthOptions = {
                 name,
                 email,
                 image: avatar,
-                currentStreak: 1,
-                longestStreak: 1,
+                currentStreak: 0,
+                longestStreak: 0,
                 totalFocusMinutes: 0,
-                streakFreezesLeft: 2,
+                streakFreezesLeft: 1,
               },
             });
           }
@@ -138,9 +138,9 @@ export const authOptions: NextAuthOptions = {
                 name: "Sakura Student 🌸",
                 email: demoEmail,
                 image: "https://api.dicebear.com/7.x/bottts/svg?seed=bloom-bunny",
-                currentStreak: 3,
-                longestStreak: 7,
-                totalFocusMinutes: 125,
+                currentStreak: 0,
+                longestStreak: 0,
+                totalFocusMinutes: 0,
                 streakFreezesLeft: 1,
               },
             });

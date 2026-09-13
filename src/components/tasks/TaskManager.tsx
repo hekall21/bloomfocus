@@ -173,18 +173,25 @@ export function TaskManager({ onStartFocus }: TaskManagerProps) {
   const [formSubtasks, setFormSubtasks] = useState<{ id: string; text: string; completed: boolean }[]>([]);
   const [newSubtaskInput, setNewSubtaskInput] = useState("");
 
-  // Load from localStorage
+  // Load from localStorage - Clean empty slate by default so user adds their own
   useEffect(() => {
     try {
       const saved = localStorage.getItem("bloomfocus_tasks_projects");
       if (saved) {
-        setTasks(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Clear old dummy seed if present so user has a fresh empty tasks dashboard
+        if (Array.isArray(parsed) && parsed.some((t: TaskItem) => t.id === "task-1")) {
+          setTasks([]);
+          localStorage.setItem("bloomfocus_tasks_projects", JSON.stringify([]));
+        } else {
+          setTasks(parsed);
+        }
       } else {
-        setTasks(DEFAULT_TASKS);
-        localStorage.setItem("bloomfocus_tasks_projects", JSON.stringify(DEFAULT_TASKS));
+        setTasks([]);
+        localStorage.setItem("bloomfocus_tasks_projects", JSON.stringify([]));
       }
     } catch {
-      setTasks(DEFAULT_TASKS);
+      setTasks([]);
     }
   }, []);
 

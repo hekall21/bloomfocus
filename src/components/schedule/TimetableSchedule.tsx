@@ -208,18 +208,25 @@ export function TimetableSchedule({ onStartFocus }: TimetableScheduleProps) {
 
   const todayName = getTodayDayName();
 
-  // Load from localStorage
+  // Load from localStorage - Clean empty slate by default so user adds their own
   useEffect(() => {
     try {
       const saved = localStorage.getItem("bloomfocus_timetable_schedule");
       if (saved) {
-        setSchedules(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Clear old dummy seed if present so user has a fresh empty schedule
+        if (Array.isArray(parsed) && parsed.some((s: ScheduleItem) => s.id === "sch-1")) {
+          setSchedules([]);
+          localStorage.setItem("bloomfocus_timetable_schedule", JSON.stringify([]));
+        } else {
+          setSchedules(parsed);
+        }
       } else {
-        setSchedules(DEFAULT_SCHEDULES);
-        localStorage.setItem("bloomfocus_timetable_schedule", JSON.stringify(DEFAULT_SCHEDULES));
+        setSchedules([]);
+        localStorage.setItem("bloomfocus_timetable_schedule", JSON.stringify([]));
       }
     } catch {
-      setSchedules(DEFAULT_SCHEDULES);
+      setSchedules([]);
     }
   }, []);
 

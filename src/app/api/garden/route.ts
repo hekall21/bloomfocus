@@ -58,36 +58,35 @@ export async function GET() {
       });
 
       return NextResponse.json({
-        currentStreak: user?.currentStreak || 1,
-        longestStreak: user?.longestStreak || 1,
-        totalFocusMinutes: user?.totalFocusMinutes || 25,
+        currentStreak: user?.currentStreak || 0,
+        longestStreak: user?.longestStreak || 0,
+        totalFocusMinutes: user?.totalFocusMinutes || 0,
         streakFreezesLeft: user?.streakFreezesLeft ?? 1,
         gardenDays,
       });
     } catch {
-      // Mock/demo response when DB not yet configured
+      // Clean fresh response when DB not yet connected
       const daysOfWeek = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-      const gardenDays = past28Days.map((dateStr, idx) => {
+      const gardenDays = past28Days.map((dateStr) => {
         const dateObj = new Date(dateStr);
         const dayName = daysOfWeek[dateObj.getDay()];
         const dayNumber = dateObj.getDate();
-        const hasSession = idx % 3 === 0 || idx >= 24;
 
         return {
           date: dateStr,
           dayName,
           dayNumber,
-          flowersCount: hasSession ? (idx % 2 === 0 ? 2 : 1) : 0,
-          minutesStudied: hasSession ? (idx % 2 === 0 ? 50 : 25) : 0,
-          isFrozen: idx === 19,
+          flowersCount: 0,
+          minutesStudied: 0,
+          isFrozen: false,
           isToday: dateStr === todayStr,
         };
       });
 
       return NextResponse.json({
-        currentStreak: 4,
-        longestStreak: 7,
-        totalFocusMinutes: 185,
+        currentStreak: 0,
+        longestStreak: 0,
+        totalFocusMinutes: 0,
         streakFreezesLeft: 1,
         gardenDays,
       });

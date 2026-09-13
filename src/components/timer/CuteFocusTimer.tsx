@@ -70,24 +70,24 @@ export function CuteFocusTimer({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load saved presets from localStorage
+  // Load saved presets from localStorage - Clean empty slate by default so user adds their own
   useEffect(() => {
     try {
       const saved = localStorage.getItem("bloomfocus_saved_targets");
       if (saved) {
-        setSavedPresets(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.includes("Kalkulus") && parsed.includes("Tugas Akhir / Skripsi")) {
+          setSavedPresets([]);
+          localStorage.setItem("bloomfocus_saved_targets", JSON.stringify([]));
+        } else {
+          setSavedPresets(parsed);
+        }
       } else {
-        const defaults = [
-          "Kalkulus",
-          "Algoritma & Pemrograman",
-          "Basis Data",
-          "Tugas Akhir / Skripsi",
-        ];
-        setSavedPresets(defaults);
-        localStorage.setItem("bloomfocus_saved_targets", JSON.stringify(defaults));
+        setSavedPresets([]);
+        localStorage.setItem("bloomfocus_saved_targets", JSON.stringify([]));
       }
     } catch {
-      // Fallback
+      setSavedPresets([]);
     }
   }, []);
 

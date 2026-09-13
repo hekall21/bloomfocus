@@ -27,10 +27,10 @@ export default function HomePage() {
   // Notebook drawer state
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
 
-  // Garden data state
-  const [currentStreak, setCurrentStreak] = useState(3);
-  const [longestStreak, setLongestStreak] = useState(7);
-  const [totalFocusMinutes, setTotalFocusMinutes] = useState(125);
+  // Garden data state (starts clean 0 for every user)
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
   const [streakFreezesLeft, setStreakFreezesLeft] = useState(1);
   const [gardenDays, setGardenDays] = useState<GardenDayData[]>([]);
 

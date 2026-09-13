@@ -147,18 +147,25 @@ export function StudentNotebookDrawer({
   // Copy feedback
   const [copiedNoteId, setCopiedNoteId] = useState<string | null>(null);
 
-  // Load notes from localStorage
+  // Load notes from localStorage - Clean empty slate by default so user adds their own
   useEffect(() => {
     try {
       const saved = localStorage.getItem("bloomfocus_student_notes");
       if (saved) {
-        setNotes(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Clear old dummy seed if present so user has a fresh empty notebook
+        if (Array.isArray(parsed) && parsed.some((n: StudyNote) => n.id === "note-1")) {
+          setNotes([]);
+          localStorage.setItem("bloomfocus_student_notes", JSON.stringify([]));
+        } else {
+          setNotes(parsed);
+        }
       } else {
-        setNotes(DEFAULT_NOTES);
-        localStorage.setItem("bloomfocus_student_notes", JSON.stringify(DEFAULT_NOTES));
+        setNotes([]);
+        localStorage.setItem("bloomfocus_student_notes", JSON.stringify([]));
       }
     } catch {
-      setNotes(DEFAULT_NOTES);
+      setNotes([]);
     }
   }, []);
 
