@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { soundEngine } from "@/lib/soundEngine";
 import { Sparkles, ArrowLeft, CheckCircle2 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingDemo, setIsLoadingDemo] = useState(false);

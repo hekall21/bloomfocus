@@ -11,6 +11,8 @@ import { soundEngine } from "@/lib/soundEngine";
 import { Sparkles, Flower2, Timer, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   const { data: session } = useSession();
 
