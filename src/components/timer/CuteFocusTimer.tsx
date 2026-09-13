@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { soundEngine } from "@/lib/soundEngine";
 import { formatTime } from "@/lib/utils";
 import { BloomMascot, MascotState } from "@/components/mascot/BloomMascot";
@@ -15,6 +15,11 @@ import {
   Sparkles,
   Settings2,
   Tag,
+  X,
+  Trash2,
+  Plus,
+  Bookmark,
+  Check,
 } from "lucide-react";
 
 type TimerMode = "focus" | "shortBreak" | "longBreak";
@@ -25,25 +30,22 @@ interface TimerSettings {
   longBreakDuration: number;
 }
 
-const DEFAULT_SUBJECTS = [
-  "Kalkulus Bab 3",
-  "Algoritma & Pemrograman",
-  "Basis Data Lanjutan",
-  "UKM & BEM Paperwork",
-  "Tugas Akhir / Skripsi",
-  "Persiapan Sidang",
-];
-
 interface CuteFocusTimerProps {
+  initialSubject?: string;
   onSessionComplete?: (data: {
     subject: string;
     durationMinutes: number;
     reflectionNote: string;
     mood: string;
   }) => Promise<void>;
+  onSubjectChange?: (newSubject: string) => void;
 }
 
-export function CuteFocusTimer({ onSessionComplete }: CuteFocusTimerProps) {
+export function CuteFocusTimer({
+  initialSubject = "",
+  onSessionComplete,
+  onSubjectChange,
+}: CuteFocusTimerProps) {
   const [mode, setMode] = useState<TimerMode>("focus");
   const [settings, setSettings] = useState<TimerSettings>({
     focusDuration: 25,
@@ -53,14 +55,90 @@ export function CuteFocusTimer({ onSessionComplete }: CuteFocusTimerProps) {
 
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [subject, setSubject] = useState("Kalkulus Bab 3");
-  const [customSubjectInput, setCustomSubjectInput] = useState("");
-  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // Target Belajar: Default EMPTY as requested by user!
+  const [subject, setSubject] = useState(initialSubject);
+  const [showSubjectManager, setShowSubjectManager] = useState(false);
+  const [newPresetInput, setNewPresetInput] = useState("");
+  const [savedPresets, setSavedPresets] = useState<string[]>([]);
+
   const [showSettings, setShowSettings] = useState(false);
   const [showReflectionModal, setShowReflectionModal] = useState(false);
   const [lastFinishedDuration, setLastFinishedDuration] = useState(25);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load saved presets from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("bloomfocus_saved_targets");
+      if (saved) {
+        setSavedPresets(JSON.parse(saved));
+      } else {
+        const defaults = [
+          "Kalkulus",
+          "Algoritma & Pemrograman",
+          "Basis Data",
+          "Tugas Akhir / Skripsi",
+        ];
+        setSavedPresets(defaults);
+        localStorage.setItem("bloomfocus_saved_targets", JSON.stringify(defaults));
+      }
+    } catch {
+      // Fallback
+    }
+  }, []);
+
+  // Update subject if initialSubject changes externally (from schedule or task click)
+  useEffect(() => {
+    if (initialSubject) {
+      setSubject(initialSubject);
+    }
+  }, [initialSubject]);
+
+  const updateSubject = (newVal: string) => {
+    setSubject(newVal);
+    if (onSubjectChange) onSubjectChange(newVal);
+  };
+
+  // Clear target subject (User's explicit request: "kosongin aja juga ada tanda hapusnya ngga sie")
+  const handleClearSubject = () => {
+    soundEngine.playChime("click");
+    updateSubject("");
+  };
+
+  // Add a preset
+  const handleAddPreset = () => {
+    if (!newPresetInput.trim()) return;
+    const trimmed = newPresetInput.trim();
+    if (!savedPresets.includes(trimmed)) {
+      const updated = [...savedPresets, trimmed];
+      setSavedPresets(updated);
+      try {
+        localStorage.setItem("bloomfocus_saved_targets", JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    updateSubject(trimmed);
+    setNewPresetInput("");
+    setShowSubjectManager(false);
+  };
+
+  // Delete a preset from the saved list
+  const handleDeletePreset = (item: string) => {
+    soundEngine.playChime("click");
+    const updated = savedPresets.filter((p) => p !== item);
+    setSavedPresets(updated);
+    try {
+      localStorage.setItem("bloomfocus_saved_targets", JSON.stringify(updated));
+    } catch (e) {
+      console.warn(e);
+    }
+    if (subject === item) {
+      updateSubject("");
+    }
+  };
 
   // Total seconds for current mode
   const getTotalSeconds = (currentMode: TimerMode) => {
@@ -159,7 +237,7 @@ export function CuteFocusTimer({ onSessionComplete }: CuteFocusTimerProps) {
   const handleSaveReflection = async (data: { reflectionNote: string; mood: string }) => {
     if (onSessionComplete) {
       await onSessionComplete({
-        subject,
+        subject: subject.trim() || "Fokus Mandiri",
         durationMinutes: lastFinishedDuration,
         reflectionNote: data.reflectionNote,
         mood: data.mood,
@@ -231,68 +309,156 @@ export function CuteFocusTimer({ onSessionComplete }: CuteFocusTimerProps) {
             : "border-pink-200/80 hover:shadow-kawaii-lg"
         }`}
       >
-        {/* Subject Tag Header */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-pink-100/70">
-          <div className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-pink-500" />
-            <span className="text-xs font-bold text-bloom-slate-400">Target Belajar:</span>
+        {/* Subject Tag Header with Clear (Delete) Button & Preset Selector */}
+        <div className="pb-4 mb-4 border-b border-pink-100/70">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 flex items-center gap-2">
+              <Tag className="w-4 h-4 text-pink-500 flex-shrink-0" />
+              <span className="text-xs font-bold text-bloom-slate-400 flex-shrink-0">
+                Target Belajar:
+              </span>
 
-            {showCustomInput ? (
-              <div className="flex items-center gap-1">
+              {/* Direct Inline Editable Input with instant Delete / Clear icon */}
+              <div className="relative flex-1 max-w-sm flex items-center">
                 <input
                   type="text"
-                  placeholder="Ketik mata kuliah..."
-                  value={customSubjectInput}
-                  onChange={(e) => setCustomSubjectInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && customSubjectInput.trim()) {
-                      setSubject(customSubjectInput.trim());
-                      setShowCustomInput(false);
-                      setCustomSubjectInput("");
-                    }
-                  }}
-                  className="px-2.5 py-1 text-xs bg-pink-50 border border-pink-300 rounded-lg text-bloom-slate-800 focus:outline-none"
-                  autoFocus
+                  placeholder="Ketik target belajarmu hari ini... (opsional)"
+                  value={subject}
+                  onChange={(e) => updateSubject(e.target.value)}
+                  className="w-full pl-3 pr-8 py-1.5 text-xs font-bold bg-pink-50/70 hover:bg-pink-100/50 focus:bg-white border border-pink-200 rounded-xl text-bloom-slate-800 placeholder:text-bloom-slate-400 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
                 />
-                <button
-                  onClick={() => {
-                    if (customSubjectInput.trim()) setSubject(customSubjectInput.trim());
-                    setShowCustomInput(false);
-                  }}
-                  className="text-[10px] font-bold text-pink-600 hover:underline px-1"
-                >
-                  OK
-                </button>
+
+                {/* Tanda Hapus / Clear Button for Target Belajar */}
+                {subject && (
+                  <button
+                    type="button"
+                    onClick={handleClearSubject}
+                    className="absolute right-2 p-1 text-bloom-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                    title="Hapus / Kosongkan Target Belajar (Clear)"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-            ) : (
-              <select
-                value={subject}
-                onChange={(e) => {
-                  if (e.target.value === "custom") {
-                    setShowCustomInput(true);
-                  } else {
-                    setSubject(e.target.value);
-                  }
+            </div>
+
+            <div className="flex items-center gap-1">
+              {/* Preset Selector Popover Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playChime("click");
+                  setShowSubjectManager(!showSubjectManager);
                 }}
-                className="text-xs font-bold text-bloom-slate-700 bg-pink-50/70 hover:bg-pink-100/60 border border-pink-200 rounded-xl px-2.5 py-1 cursor-pointer focus:outline-none transition"
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border ${
+                  showSubjectManager
+                    ? "bg-pink-500 text-white border-pink-500"
+                    : "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100"
+                }`}
+                title="Pilih atau kelola daftar target belajar tersimpan"
               >
-                {DEFAULT_SUBJECTS.map((sub) => (
-                  <option key={sub} value={sub}>
-                    {sub}
-                  </option>
-                ))}
-                <option value="custom">+ Tulis Subjek Lain...</option>
-              </select>
-            )}
+                <Bookmark className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Pilihan</span>
+              </button>
+
+              {/* Duration Settings Button */}
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-1.5 text-bloom-slate-400 hover:text-pink-500 rounded-xl hover:bg-pink-50 transition"
+                title="Kustomisasi Durasi Waktu"
+              >
+                <Settings2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-1.5 text-bloom-slate-400 hover:text-pink-500 rounded-xl hover:bg-pink-50 transition"
-            title="Kustomisasi Durasi Waktu"
-          >
-            <Settings2 className="w-4 h-4" />
-          </button>
+          {/* Quick Target Presets / Manager Drawer */}
+          <AnimatePresence>
+            {showSubjectManager && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3.5 bg-pink-50/80 border border-pink-200 rounded-2xl text-xs space-y-2.5"
+              >
+                <div className="flex items-center justify-between text-bloom-slate-700 font-bold">
+                  <span>Pilih dari Daftar Target Tersimpan:</span>
+                  <button
+                    onClick={() => updateSubject("")}
+                    className="text-[11px] text-rose-500 hover:underline flex items-center gap-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Kosongkan Target</span>
+                  </button>
+                </div>
+
+                {/* Preset Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {savedPresets.map((preset) => (
+                    <div
+                      key={preset}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition ${
+                        subject === preset
+                          ? "bg-pink-500 text-white border-pink-500 shadow-xs"
+                          : "bg-white text-bloom-slate-700 border-pink-200 hover:bg-pink-100/50"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playChime("click");
+                          updateSubject(preset);
+                          setShowSubjectManager(false);
+                        }}
+                        className="flex items-center gap-1"
+                      >
+                        {subject === preset && <Check className="w-3 h-3 text-white" />}
+                        <span>{preset}</span>
+                      </button>
+
+                      {/* Delete button on each preset */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePreset(preset);
+                        }}
+                        className="text-bloom-slate-400 hover:text-rose-500 p-0.5"
+                        title="Hapus pilihan ini dari daftar"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add new preset form */}
+                <div className="flex items-center gap-2 pt-1 border-t border-pink-200/60">
+                  <input
+                    type="text"
+                    placeholder="Tambah target baru ke daftar..."
+                    value={newPresetInput}
+                    onChange={(e) => setNewPresetInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddPreset();
+                      }
+                    }}
+                    className="flex-1 px-3 py-1.5 text-xs bg-white border border-pink-200 rounded-xl text-bloom-slate-800 placeholder:text-bloom-slate-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPreset}
+                    className="px-3 py-1.5 bg-pink-500 text-white text-xs font-bold rounded-xl hover:bg-pink-600 transition flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Simpan</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Quick Settings Panel Drawer */}
@@ -358,7 +524,7 @@ export function CuteFocusTimer({ onSessionComplete }: CuteFocusTimerProps) {
         <div className="flex justify-center mb-4">
           <BloomMascot
             state={mascotState}
-            subject={subject}
+            subject={subject || "Fokus Mandiri"}
             isPaused={!isRunning && timeLeft < totalSeconds}
           />
         </div>
@@ -434,7 +600,7 @@ export function CuteFocusTimer({ onSessionComplete }: CuteFocusTimerProps) {
       {/* Post-Session Reflection Modal */}
       <ReflectionModal
         isOpen={showReflectionModal}
-        subject={subject}
+        subject={subject || "Fokus Bebas"}
         durationMinutes={lastFinishedDuration}
         onSave={handleSaveReflection}
         onClose={() => {

@@ -19,6 +19,49 @@ export const authOptions: NextAuthOptions = {
           }),
         ]
       : []),
+    // Custom Student Profile Login (Allows user to use their own name & email)
+    CredentialsProvider({
+      id: "student-account",
+      name: "Student Account",
+      credentials: {
+        name: { label: "Nama Lengkap", type: "text" },
+        email: { label: "Email", type: "email" },
+      },
+      async authorize(credentials) {
+        const name = credentials?.name?.trim() || "Mahasiswa Pejuang IPK 🌸";
+        const email = credentials?.email?.trim().toLowerCase() || `student_${Date.now()}@bloomfocus.local`;
+        const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`;
+
+        try {
+          let user = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (!user) {
+            user = await prisma.user.create({
+              data: {
+                name,
+                email,
+                image: avatar,
+                currentStreak: 1,
+                longestStreak: 1,
+                totalFocusMinutes: 0,
+                streakFreezesLeft: 2,
+              },
+            });
+          }
+          return user;
+        } catch {
+          // Resilient fallback in-memory user when DB is not yet running
+          return {
+            id: "user-" + (email.replace(/[^a-zA-Z0-9]/g, "") || Date.now().toString()),
+            name,
+            email,
+            image: avatar,
+          };
+        }
+      },
+    }),
     // Instant One-Click Demo Mode (ensures app can be evaluated & tested zero-friction)
     CredentialsProvider({
       id: "demo-student",
